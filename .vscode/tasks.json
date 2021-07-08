@@ -1,0 +1,11 @@
+{
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "C/C++: gcc-11 générer le fichier actif",
+            "command": "bash",
+            "args":["-c", "cd '${fileDirname}' && make -C .. re"]
+                }
+    ],
+    "version": "2.0.0"
+}

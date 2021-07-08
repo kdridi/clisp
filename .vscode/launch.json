@@ -1,36 +1,32 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-    
-        {
-            "name": "with no file",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${fileDirname}/../clisp.exe",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${fileDirname}/..",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "lldb",
-            "preLaunchTask": "C/C++: gcc-11 générer le fichier actif"
-        },
-    
-        {
-            "name": "with file",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${fileDirname}/../clisp.exe",
-            "args": ["sample.ls"],
-            "stopAtEntry": false,
-            "cwd": "${fileDirname}/..",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "lldb",
-            "preLaunchTask": "C/C++: gcc-11 générer le fichier actif"
-        }
-    ]
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Launch with no file",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${fileDirname}/../clisp.exe",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${fileDirname}/..",
+			"environment": [],
+			"externalConsole": false,
+			"MIMode": "lldb",
+			"preLaunchTask": "Rebuild the project"
+		},
+
+		{
+			"name": "Launch with sample file",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${fileDirname}/../clisp.exe",
+			"args": ["sample01.txt"],
+			"stopAtEntry": false,
+			"cwd": "${fileDirname}/..",
+			"environment": [],
+			"externalConsole": false,
+			"MIMode": "lldb",
+			"preLaunchTask": "Rebuild the project"
+		}
+	]
 }

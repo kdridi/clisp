@@ -11,6 +11,11 @@ static void unmake(void *ptr) {
   case kOT_list:
     memory_release(object->list.tail);
     memory_release(object->list.head);
+    break;
+  case kOT_env:
+    memory_release(object->env.vars);
+    memory_release(object->env.parent);
+    break;
   case kOT_constant:
   case kOT_integer:
   case kOT_symbol:
@@ -101,9 +106,10 @@ void object_list_push(object_t *list_ptr, object_t object) {
     assert(object_list_is_empty(list->list.last->list.tail));
     memory_release(list->list.last->list.tail);
 
-    object_t last = object_list_create();
-    object_t node = make_list(object, last);
-    memory_release(last);
+    object_t node = NULL;
+    object_new(last, object_list_create(), { //
+      node = make_list(object, last);
+    });
 
     list->list.last = list->list.last->list.tail = node;
   }
@@ -118,7 +124,13 @@ bool object_list_is_empty(object_t object) {
 }
 
 object_t object_create_env(void) { //
-  return make_env(object_list_create(), object_list_create());
+  object_t env = NULL;
+  object_new(vars, object_list_create(), {
+    object_new(parent, object_list_create(), { //
+      env = make_env(vars, parent);
+    });
+  });
+  return env;
 }
 
 #include <stdio.h>
@@ -157,4 +169,15 @@ void object_print(object_t self) {
     assert(false);
     break;
   }
+}
+
+object_t object_eval(object_t env, object_t object) { //
+  assert(env != NULL);
+  return object;
+}
+
+void object_delete(void *ptr) {
+  object_t *object_ptr = (object_t *)ptr;
+  object_t object = *((object_t *)object_ptr);
+  *object_ptr = memory_release(object);
 }

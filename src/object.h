@@ -66,11 +66,22 @@ extern "C"
     bool object_list_is_empty(object_t object);
     // env
     object_t object_create_env(void);
+    // eval
+    object_t object_eval(object_t env, object_t object);
 
     void object_print(object_t self);
+    void object_delete(void *ptr);
 
 #ifdef __cplusplus
 }
 #endif
+
+#define object_new(_name, _value, _block)                                    \
+    do                                                                       \
+    {                                                                        \
+        __attribute__((__cleanup__(object_delete))) object_t _name = _value; \
+        assert(_name != NULL);                                               \
+        _block;                                                              \
+    } while (0)
 
 #endif /* __OBJECT_H__ */

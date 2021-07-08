@@ -68,10 +68,10 @@ object_t parse_number(stream_t s, int sign, int value) {
 object_t parse_list(stream_t s) {
   object_t head = object_list_create();
   while (peek_char(s, true) != ')') {
-    object_t object = parse(s);
-    assert(object != NULL);
-    object_list_push(&head, object);
-    memory_release(object);
+    object_new(object, parse(s), {
+      assert(object != NULL);
+      object_list_push(&head, object);
+    });
   }
   next_char(s, false);
   return (head);
@@ -79,18 +79,15 @@ object_t parse_list(stream_t s) {
 
 object_t parse_quote(stream_t s) {
   object_t list = object_list_create();
-  {
-    object_t object = object_create_symbol("quote");
-    assert(object != NULL);
-    object_list_push(&list, object);
-    memory_release(object);
-  }
-  {
-    object_t object = parse(s);
-    assert(object != NULL);
-    object_list_push(&list, object);
-    memory_release(object);
-  }
+
+  object_new(object,                        //
+             object_create_symbol("quote"), //
+             object_list_push(&list, object));
+
+  object_new(object,   //
+             parse(s), //
+             object_list_push(&list, object));
+
   return (list);
 }
 
@@ -124,6 +121,7 @@ object_t parse(stream_t s) {
 }
 
 int main(int argc, const char *argv[]) {
+
   FILE *fp = NULL;
   stream_t s = NULL;
   if (argc == 2) {
@@ -140,14 +138,16 @@ int main(int argc, const char *argv[]) {
     s = stream_create_from_string(str[0]);
   }
 
+  object_t env = object_create_env();
   while (true) {
     object_t object = parse(s);
     if (object == NULL)
       break;
-    object_print(object);
+    object_print(object_eval(env, object));
     printf("\n");
     memory_release(object);
   }
+  memory_release(env);
   memory_release(s);
 
   if (fp != NULL) {

@@ -2,6 +2,7 @@
 #define __OBJECT_H__
 
 #include <stdbool.h>
+#include <stddef.h>
 
 typedef enum
 {
@@ -11,14 +12,21 @@ typedef enum
     kOT_symbol,
     kOT_string,
     kOT_env,
+    kOT_primitive,
+    kOT_function,
 } object_type_t;
 
 typedef enum
 {
     kCT_nil,
+    kCT_true,
 } constant_type_t;
 
-typedef struct s_object
+typedef struct s_object *object_t;
+
+typedef object_t primitive_t(object_t env, object_t args);
+
+struct s_object
 {
     object_type_t type;
     union
@@ -46,8 +54,10 @@ typedef struct s_object
         char symbol[1];
         // string
         char string[1];
+        // primitive
+        primitive_t *primitive;
     };
-} * object_t;
+};
 
 #ifdef __cplusplus
 extern "C"
@@ -62,6 +72,7 @@ extern "C"
     object_t object_create_integer(int value);
     // list
     object_t object_list_create();
+    size_t object_list_length(object_t list);
     void object_list_push(object_t *list_ptr, object_t object);
     bool object_list_is_empty(object_t object);
     // env

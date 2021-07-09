@@ -67,12 +67,10 @@ object_t parse_number(stream_t s, int sign, int value) {
 
 object_t parse_list(stream_t s) {
   object_t head = object_list_create();
-  while (peek_char(s, true) != ')') {
-    object_new(object, parse(s), {
-      assert(object != NULL);
+  while (peek_char(s, true) != ')')
+    object_new(object, parse(s), { //
       object_list_push(&head, object);
     });
-  }
   next_char(s, false);
   return (head);
 }
@@ -121,7 +119,6 @@ object_t parse(stream_t s) {
 }
 
 int main(int argc, const char *argv[]) {
-
   FILE *fp = NULL;
   stream_t s = NULL;
   if (argc == 2) {
@@ -138,16 +135,16 @@ int main(int argc, const char *argv[]) {
     s = stream_create_from_string(str[0]);
   }
 
-  object_t env = object_create_env();
-  while (true) {
-    object_t object = parse(s);
-    if (object == NULL)
-      break;
-    object_print(object_eval(env, object));
-    printf("\n");
-    memory_release(object);
-  }
-  memory_release(env);
+  object_new(env, object_create_env(), {
+    while (true) {
+      object_t object = parse(s);
+      if (object == NULL)
+        break;
+      object_print(object_eval(env, object));
+      printf("\n");
+      memory_release(object);
+    }
+  });
   memory_release(s);
 
   if (fp != NULL) {

@@ -20,16 +20,22 @@ int main(int argc, const char *argv[]) {
     s = stream_create_from_string(str[0]);
   }
 
-  object_new(env, object_create_env(), {
-    while (true) {
-      object_t object = parse(s);
-      if (object == NULL)
-        break;
-      object_print(object_eval(env, object));
-      printf("\n");
-      memory_release(object);
-    }
-  });
+  object_t env = object_create_env();
+
+  while (true) {
+    object_t object = parse(s);
+    if (object == NULL)
+      break;
+    object_t result = object_eval(env, object);
+    object_print(result);
+    memory_release(result);
+    printf("\n");
+    memory_release(object);
+  }
+
+  object_print(env);
+  memory_release(env);
+
   memory_release(s);
 
   if (fp != NULL) {

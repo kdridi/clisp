@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 
 static void unmake(void *ptr) {
@@ -13,15 +14,19 @@ static void unmake(void *ptr) {
     memory_release(object->list.head);
     break;
   case kOT_env:
-    memory_release(object->env.vars);
     memory_release(object->env.parent);
+    memory_release(object->env.vars);
     break;
+  case kOT_symbol:
   case kOT_constant:
   case kOT_integer:
-  case kOT_symbol:
   case kOT_string:
   case kOT_primitive:
+    break;
   case kOT_function:
+    // memory_release(object->function.env);
+    memory_release(object->function.body);
+    memory_release(object->function.params);
     break;
   default:
     assert(false);
@@ -48,12 +53,12 @@ static object_t make_integer(int integer) {
   return (self);
 }
 
-static object_t make_list(object_t car, object_t cdr) {
-  assert(car != NULL);
-  assert(cdr != NULL);
+static object_t make_list(object_t head, object_t tail) {
+  assert(head != NULL);
+  assert(tail != NULL);
   object_t self = make(kOT_list, sizeof(self->list));
-  self->list.head = memory_retain(car);
-  self->list.tail = memory_retain(cdr);
+  self->list.head = memory_retain(head);
+  self->list.tail = memory_retain(tail);
   self->list.last = NULL;
   return (self);
 }
@@ -74,7 +79,6 @@ static object_t make_string(const char *string) {
 
 static object_t make_env(object_t vars, object_t parent) {
   assert(vars != NULL);
-  assert(parent != NULL);
   object_t self = make(kOT_env, sizeof(self->env));
   self->env.vars = memory_retain(vars);
   self->env.parent = memory_retain(parent);
@@ -84,6 +88,16 @@ static object_t make_env(object_t vars, object_t parent) {
 static object_t make_primitive(primitive_t primitive) {
   object_t self = make(kOT_primitive, sizeof(self->primitive));
   self->primitive = primitive;
+  return (self);
+}
+
+static object_t make_function(object_type_t type, object_t params,
+                              object_t body, object_t env) {
+  assert(type == kOT_function);
+  object_t self = make(type, sizeof(self->function));
+  self->function.params = memory_retain(params);
+  self->function.body = memory_retain(body);
+  self->function.env = env;
   return (self);
 }
 
@@ -143,12 +157,26 @@ bool object_list_is_empty(object_t object) {
   return ((object->type == kOT_constant) && (object->constant == kCT_nil));
 }
 
+static object_t object_eval_list(object_t env, object_t object) {
+  if (object_list_is_empty(object) == true)
+    return object_list_create();
+  assert(object->type == kOT_list);
+
+  object_t head = object_eval(env, object->list.head);
+  object_t tail = object_eval_list(env, object->list.tail);
+  object_t result = make_list(head, tail);
+  memory_release(head);
+  memory_release(tail);
+
+  assert(result->type == kOT_list);
+  return result;
+}
+
 object_t env_find(object_t env, object_t object) {
   assert(object != NULL);
   assert(object->type == kOT_symbol);
 
-  while (env != NULL) {
-    assert(env != NULL);
+  while (object_list_is_empty(env) == false) {
     assert(env->type == kOT_env);
 
     object_t vars = env->env.vars;
@@ -160,11 +188,11 @@ object_t env_find(object_t env, object_t object) {
       assert(pair->type == kOT_list);
       assert(pair->list.head != NULL);
       assert(pair->list.head->type == kOT_symbol);
-      if (strcmp(pair->list.head->symbol, object->symbol) == 0)
+      if (strcmp(pair->list.head->symbol, object->symbol) == 0) {
         return pair->list.tail;
+      }
       vars = vars->list.tail;
     }
-
     env = env->env.parent;
   }
 
@@ -202,6 +230,8 @@ static void env_add_primitive(object_t env, const char *name,
 static object_t primitive_do(object_t env, object_t args) {
   object_t result = NULL;
   while (object_list_is_empty(args) == false) {
+    if (result != NULL)
+      memory_release(result);
     result = object_eval(env, args->list.head);
     args = args->list.tail;
   }
@@ -211,8 +241,10 @@ static object_t primitive_do(object_t env, object_t args) {
 static object_t primitive_if(object_t env, object_t args) {
   assert(object_list_length(args) >= 2);
   object_t condition = object_eval(env, args->list.head);
+  bool is_true = object_list_is_empty(condition) == false;
+  memory_release(condition);
 
-  if (object_list_is_empty(condition) == false) {
+  if (is_true) {
     return object_eval(env, args->list.tail->list.head);
   }
 
@@ -232,6 +264,43 @@ static object_t primitive_define(object_t env, object_t args) {
   return value;
 }
 
+static object_t primitive_lambda(object_t env, object_t args) { //
+  assert(object_list_length(args) == 2);
+  return make_function(kOT_function, args->list.head, args->list.tail, env);
+}
+
+static object_t primitive_defun(object_t env, object_t args) {
+  assert(object_list_length(args) == 3);
+  object_t name = args->list.head;
+  object_t func = primitive_lambda(env, args->list.tail);
+  env_add(env, name, func);
+  return func;
+}
+
+static object_t primitive_equ(object_t env, object_t args) {
+  assert(object_list_length(args) == 2);
+  object_t argl = object_eval(env, args->list.head);
+  object_t argr = object_eval(env, args->list.tail->list.head);
+  object_t result = object_list_create();
+  if (argl->type == argr->type) {
+    switch (argl->type) {
+    case kOT_integer: {
+      if (argl->integer == argr->integer) {
+        memory_release(result);
+        result = make_constant(kCT_true);
+      }
+      break;
+    }
+    default:
+      assert(false);
+      break;
+    }
+  }
+  memory_release(argr);
+  memory_release(argl);
+  return result;
+}
+
 #define primitive_arithmetic(_sign)                                            \
   assert(object_list_length(args) > 1);                                        \
   bool first = true;                                                           \
@@ -246,6 +315,7 @@ static object_t primitive_define(object_t env, object_t args) {
     } else {                                                                   \
       result = result _sign value->integer;                                    \
     }                                                                          \
+    memory_release(value);                                                     \
     args = args->list.tail;                                                    \
   } while (object_list_is_empty(args) == false);                               \
   return make_integer(result)
@@ -276,21 +346,42 @@ object_t object_create_env(void) {
       env_add_primitive(env, "if", primitive_if);
       env_add_primitive(env, "do", primitive_do);
       env_add_primitive(env, "define", primitive_define);
+      env_add_primitive(env, "defun", primitive_defun);
+      env_add_primitive(env, "lambda", primitive_lambda);
 
       env_add_primitive(env, "+", primitive_add);
       env_add_primitive(env, "-", primitive_sub);
       env_add_primitive(env, "*", primitive_mul);
       env_add_primitive(env, "/", primitive_div);
+      env_add_primitive(env, "=", primitive_equ);
     });
   });
   return env;
 }
 
-#include <stdio.h>
-
 void object_print(object_t self) {
   assert(self != NULL);
   switch (self->type) {
+  case kOT_env:
+    printf("ENV[VARS[");
+    for (object_t p = self->env.vars; !object_list_is_empty(p);
+         p = p->list.tail) {
+      printf("(");
+      object_print(p->list.head->list.head);
+      printf(",");
+      object_print(p->list.head->list.tail);
+      printf(")");
+    }
+    printf("]PARENT[");
+    object_print(self->env.parent);
+    printf("]]");
+    break;
+  case kOT_function:
+    printf("FUNCTION");
+    break;
+  case kOT_primitive:
+    printf("PRIMITIVE");
+    break;
   case kOT_string:
     printf("STRING[%s]", self->string);
     break;
@@ -335,9 +426,27 @@ object_t object_apply(object_t env, object_t func, object_t args) {
   assert(args != NULL);
 
   switch (func->type) {
-  case kOT_primitive:
+  case kOT_primitive: {
     return func->primitive(env, args);
-    break;
+  }
+  case kOT_function: {
+    object_t result = NULL, params = func->function.params;
+    assert(object_list_length(params) == object_list_length(args));
+    object_new(empty, object_list_create(), {
+      object_new(new_env, make_env(empty, func->function.env), {
+        object_new(head, object_eval_list(env, args), {
+          object_t values = head;
+          while (object_list_is_empty(params) == false) {
+            env_add(new_env, params->list.head, values->list.head);
+            params = params->list.tail;
+            values = values->list.tail;
+          }
+        });
+        result = primitive_do(new_env, func->function.body);
+      });
+    });
+    return result;
+  }
   default:
     assert(false);
     break;
@@ -349,26 +458,33 @@ object_t object_apply(object_t env, object_t func, object_t args) {
 object_t object_eval(object_t env, object_t object) {
   assert(env != NULL);
   assert(object != NULL);
+
   switch (object->type) {
-  case kOT_symbol:
+  case kOT_symbol: {
+    const char *name = object->symbol;
     object = env_find(env, object);
-    assert(object != NULL);
+    if (object == NULL) {
+      printf("name: %s\n", name);
+      assert(false);
+    }
+    return memory_retain(object);
+  }
   case kOT_integer:
   case kOT_string:
   case kOT_constant:
-    break;
+    return memory_retain(object);
   case kOT_list: {
-    object_t func = object_eval(env, object->list.head);
-    object_t args = object->list.tail;
-    assert(func->type == kOT_primitive || func->type == kOT_function);
-    object = object_apply(env, func, args);
-    break;
+    object_t result = NULL;
+    object_new(func, object_eval(env, object->list.head),
+               { result = object_apply(env, func, object->list.tail); });
+    return result;
   }
   default:
     assert(false);
     break;
   }
-  return object;
+
+  return (NULL);
 }
 
 void object_delete(void *ptr) {

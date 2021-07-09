@@ -1,12 +1,8 @@
-1
-nil
-true
-false
-"he\"ll\"o"
-((if true if) true "hello" 1 2 3)
-(if nil "hello")
-(if nil "hello" 1 2 3)
-(do 4 5 6)
-(define a 123)
-(if false "nope" (define b (+ 100 (* 10 10) 256)) a)
-b
+(define inc (lambda (n) (+ n 1)))
+(= 21 21)
+(defun fact1 (n) (if (= n 0) 1 (* n (fact1 (- n 1)))))
+(fact1 7)
+(define fact2 (lambda (n) (if (= n 0) 1 (* n (fact2 (- n 1))))))
+(fact2 7)
+(inc (fact1 7))
+(inc (fact2 7))

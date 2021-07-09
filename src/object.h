@@ -56,6 +56,13 @@ struct s_object
         char string[1];
         // primitive
         primitive_t *primitive;
+        // function
+        struct
+        {
+            struct s_object *params;
+            struct s_object *body;
+            struct s_object *env;
+        } function;
     };
 };
 

@@ -14,13 +14,25 @@
 			"MIMode": "lldb",
 			"preLaunchTask": "Rebuild the project"
 		},
-
 		{
-			"name": "Launch with sample file",
+			"name": "Launch with sample01.txt",
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${fileDirname}/../clisp.exe",
 			"args": ["sample01.txt"],
+			"stopAtEntry": false,
+			"cwd": "${fileDirname}/..",
+			"environment": [],
+			"externalConsole": false,
+			"MIMode": "lldb",
+			"preLaunchTask": "Rebuild the project"
+		}
+		{
+			"name": "Launch with sample02.txt",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${fileDirname}/../clisp.exe",
+			"args": ["sample02.txt"],
 			"stopAtEntry": false,
 			"cwd": "${fileDirname}/..",
 			"environment": [],

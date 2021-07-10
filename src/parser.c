@@ -18,7 +18,8 @@ static object_t parse_symbol(stream_t s, char c) {
 
   name[length++] = c;
   name[length] = 0;
-  while (isalnum(peek_char(s, false)) || peek_char(s, false) == '-') {
+  while (isalnum(peek_char(s, false)) ||
+         strchr("_-+=!@#$%^&*<>", peek_char(s, false))) {
     if (length == capacity) {
       capacity += capacity;
       name = realloc(name, capacity + 1);
@@ -107,7 +108,7 @@ object_t parse(stream_t s) {
   if (c == '-' && isdigit(peek_char(s, false)))
     return parse_number(s, 0 - 1, next_char(s, false) - '0');
 
-  if (isalpha(c) || strchr("-+=!@#$%^&*", c))
+  if (isalpha(c) || strchr("_-+=!@#$%^&*<>", c))
     return parse_symbol(s, c);
 
   printf("ERROR: Don't know how to handle '%c'\n", c);

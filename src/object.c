@@ -2,9 +2,13 @@
 #include "memory.h"
 
 #include <assert.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 static void unmake(void *ptr) {
   object_t object = ptr;
@@ -227,6 +231,14 @@ static void env_add_primitive(object_t env, const char *name,
   });
 }
 
+static void env_add_integer(object_t env, const char *name, int integer) {
+  object_new(key, object_create_symbol(name), {
+    object_new(value, make_integer(integer), { //
+      env_add(env, key, value);
+    });
+  });
+}
+
 static object_t primitive_do(object_t env, object_t args) {
   object_t result = NULL;
   while (object_list_is_empty(args) == false) {
@@ -277,27 +289,128 @@ static object_t primitive_defun(object_t env, object_t args) {
   return func;
 }
 
-static object_t primitive_equ(object_t env, object_t args) {
+static object_t primitive_eq(object_t env, object_t args) {
   assert(object_list_length(args) == 2);
-  object_t argl = object_eval(env, args->list.head);
-  object_t argr = object_eval(env, args->list.tail->list.head);
+
   object_t result = object_list_create();
-  if (argl->type == argr->type) {
-    switch (argl->type) {
-    case kOT_integer: {
-      if (argl->integer == argr->integer) {
-        memory_release(result);
-        result = make_constant(kCT_true);
+  object_new(argl, object_eval(env, args->list.head), {
+    object_new(argr, object_eval(env, args->list.tail->list.head), {
+      if (argl->type == argr->type) {
+        switch (argl->type) {
+        case kOT_integer: {
+          if (argl->integer == argr->integer) {
+            memory_release(result);
+            result = make_constant(kCT_true);
+          }
+          break;
+        }
+        default:
+          assert(false);
+          break;
+        }
       }
-      break;
-    }
-    default:
-      assert(false);
-      break;
-    }
-  }
-  memory_release(argr);
-  memory_release(argl);
+    });
+  });
+  return result;
+}
+
+static object_t primitive_lt(object_t env, object_t args) {
+  assert(object_list_length(args) == 2);
+
+  object_t result = object_list_create();
+  object_new(argl, object_eval(env, args->list.head), {
+    object_new(argr, object_eval(env, args->list.tail->list.head), {
+      if (argl->type == argr->type) {
+        switch (argl->type) {
+        case kOT_integer: {
+          if (argl->integer < argr->integer) {
+            memory_release(result);
+            result = make_constant(kCT_true);
+          }
+          break;
+        }
+        default:
+          assert(false);
+          break;
+        }
+      }
+    });
+  });
+  return result;
+}
+
+static object_t primitive_gt(object_t env, object_t args) {
+  assert(object_list_length(args) == 2);
+
+  object_t result = object_list_create();
+  object_new(argl, object_eval(env, args->list.head), {
+    object_new(argr, object_eval(env, args->list.tail->list.head), {
+      if (argl->type == argr->type) {
+        switch (argl->type) {
+        case kOT_integer: {
+          if (argl->integer > argr->integer) {
+            memory_release(result);
+            result = make_constant(kCT_true);
+          }
+          break;
+        }
+        default:
+          assert(false);
+          break;
+        }
+      }
+    });
+  });
+  return result;
+}
+
+static object_t primitive_le(object_t env, object_t args) {
+  assert(object_list_length(args) == 2);
+
+  object_t result = object_list_create();
+  object_new(argl, object_eval(env, args->list.head), {
+    object_new(argr, object_eval(env, args->list.tail->list.head), {
+      if (argl->type == argr->type) {
+        switch (argl->type) {
+        case kOT_integer: {
+          if (argl->integer <= argr->integer) {
+            memory_release(result);
+            result = make_constant(kCT_true);
+          }
+          break;
+        }
+        default:
+          assert(false);
+          break;
+        }
+      }
+    });
+  });
+  return result;
+}
+
+static object_t primitive_ge(object_t env, object_t args) {
+  assert(object_list_length(args) == 2);
+
+  object_t result = object_list_create();
+  object_new(argl, object_eval(env, args->list.head), {
+    object_new(argr, object_eval(env, args->list.tail->list.head), {
+      if (argl->type == argr->type) {
+        switch (argl->type) {
+        case kOT_integer: {
+          if (argl->integer >= argr->integer) {
+            memory_release(result);
+            result = make_constant(kCT_true);
+          }
+          break;
+        }
+        default:
+          assert(false);
+          break;
+        }
+      }
+    });
+  });
   return result;
 }
 
@@ -333,6 +446,46 @@ static object_t primitive_div(object_t env, object_t args) {
   primitive_arithmetic(/);
 }
 
+static object_t c_open(object_t env, object_t args) {
+  assert(object_list_length(args) == 2);
+
+  object_new(pathname, object_eval(env, args->list.head), {
+    assert(pathname->type == kOT_string);
+    object_new(flags, object_eval(env, args->list.tail->list.head), {
+      assert(flags->type == kOT_integer);
+      int result = open(pathname->string, flags->integer);
+      return object_create_integer(result);
+    });
+  });
+}
+
+static object_t c_close(object_t env, object_t args) {
+  assert(object_list_length(args) == 1);
+
+  object_new(fp, object_eval(env, args->list.head), {
+    assert(fp->type == kOT_integer);
+    int result = close(fp->integer);
+    return object_create_integer(result);
+  });
+}
+
+// static object_t c_read(object_t env, object_t args) {
+//   assert(object_list_length(args) == 2);
+
+//   object_new(fp, object_eval(env, args->list.head), {
+//     assert(fp->type == kOT_integer);
+//     object_new(size, object_eval(env, args->list.tail->list.head), {
+//       assert(size->type == kOT_integer);
+
+//       char *buffer = memory_create(size->integer);
+//       ssize_t result = read(fp->integer, buffer, size->integer);
+//       memory_release(buffer);
+
+//       return object_create_integer(result);
+//     });
+//   });
+// }
+
 object_t object_create_env(int argc, const char **argv) {
   object_t env = NULL;
   object_new(vars, object_list_create(), {
@@ -349,11 +502,21 @@ object_t object_create_env(int argc, const char **argv) {
       env_add_primitive(env, "defun", primitive_defun);
       env_add_primitive(env, "lambda", primitive_lambda);
 
+      env_add_integer(env, "O_RDONLY", O_RDONLY);
+      env_add_primitive(env, "c_open", c_open);
+      env_add_primitive(env, "c_close", c_close);
+      // env_add_primitive(env, "c_read", c_read);
+
       env_add_primitive(env, "+", primitive_add);
       env_add_primitive(env, "-", primitive_sub);
       env_add_primitive(env, "*", primitive_mul);
       env_add_primitive(env, "/", primitive_div);
-      env_add_primitive(env, "=", primitive_equ);
+
+      env_add_primitive(env, "=", primitive_eq);
+      env_add_primitive(env, "<", primitive_lt);
+      env_add_primitive(env, ">", primitive_gt);
+      env_add_primitive(env, "<=", primitive_le);
+      env_add_primitive(env, ">=", primitive_ge);
 
       object_new(ARGS, object_list_create(), {
         for (int i = 0; i < argc; i++) {
@@ -433,7 +596,14 @@ object_t object_apply(object_t env, object_t func, object_t args) {
   assert(env != NULL);
   assert(env->type == kOT_env);
   assert(func != NULL);
-  assert(func->type == kOT_primitive || func->type == kOT_function);
+  if (func->type != kOT_primitive && func->type != kOT_function) {
+    object_print(func);
+    printf("\n");
+    // object_print(args);
+    // printf("\n");
+    assert(false);
+  }
+
   assert(args != NULL);
 
   switch (func->type) {
@@ -459,6 +629,9 @@ object_t object_apply(object_t env, object_t func, object_t args) {
     return result;
   }
   default:
+    printf("ERROR: ");
+    object_print(func);
+    printf("\n");
     assert(false);
     break;
   }

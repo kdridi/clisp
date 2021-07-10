@@ -1,0 +1,9 @@
+(defun with-file (filename mode fn)
+    (do
+        (define file (c_open filename mode))
+        (if (> 0 file) nil
+            (define result (fn file))
+            (c_close file)
+            result)))
+
+(with-file "sample04.txt" O_RDONLY (lambda (file) file))

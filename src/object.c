@@ -333,7 +333,7 @@ static object_t primitive_div(object_t env, object_t args) {
   primitive_arithmetic(/);
 }
 
-object_t object_create_env(void) {
+object_t object_create_env(int argc, const char **argv) {
   object_t env = NULL;
   object_new(vars, object_list_create(), {
     object_new(parent, object_list_create(), {
@@ -354,6 +354,17 @@ object_t object_create_env(void) {
       env_add_primitive(env, "*", primitive_mul);
       env_add_primitive(env, "/", primitive_div);
       env_add_primitive(env, "=", primitive_equ);
+
+      object_new(ARGS, object_list_create(), {
+        for (int i = 0; i < argc; i++) {
+          object_new(arg, object_create_string(argv[i]), { //
+            object_list_push(&ARGS, arg);
+          });
+        }
+        object_new(key, object_create_symbol("ARGS"), { //
+          env_add(env, key, ARGS);
+        });
+      });
     });
   });
   return env;

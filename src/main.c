@@ -1,44 +1,45 @@
 #include "parser.h"
 
 #include <assert.h>
+#include <string.h>
 
 int main(int argc, const char *argv[]) {
+  const char *prompt = NULL;
   FILE *fp = NULL;
-  stream_t s = NULL;
-  if (argc == 2) {
-    fp = fopen(argv[1], "r");
-    assert(fp != NULL);
-    s = stream_create_from_file(fp);
+  int offset = 1;
+
+  if (argc > 1) {
+    if (strcmp(argv[1], "--") != 0) {
+      fp = fopen(argv[1], "r");
+      assert(fp != NULL);
+    } else {
+      fp = stdin;
+      prompt = "minilisp> ";
+    }
+    offset += 1;
   } else {
-    const char *str[] = {
-        "(do 1 2 3) true nil false \"false\" 12 (if false \"true\" 1 2)",
-        "(abc '(def ghi))",
-        "'(+ 12 34 56)\n(\"a\\\"b\\\"c\")",
-        "(1 2) (1) ()",
-        "(1223 () ((())) (add 123 -23 idf () - (+ 12 23)))",
-    };
-    s = stream_create_from_string(str[0]);
+    fp = stdin;
+    prompt = "minilisp> ";
   }
 
-  object_t env = object_create_env();
+  stream_new(s, stream_create_from_file(stdin), {
+    object_new(env, object_create_env(argc - offset, argv + offset), {
+      while (true) {
+        printf("%s", prompt ? prompt : "");
+        object_t object = parse(s);
+        if (object == NULL)
+          break;
+        object_t result = object_eval(env, object);
+        object_print(result);
+        memory_release(result);
+        printf("\n");
+        memory_release(object);
+      }
+    });
+  });
 
-  while (true) {
-    object_t object = parse(s);
-    if (object == NULL)
-      break;
-    object_t result = object_eval(env, object);
-    object_print(result);
-    memory_release(result);
-    printf("\n");
-    memory_release(object);
-  }
-
-  object_print(env);
-  memory_release(env);
-
-  memory_release(s);
-
-  if (fp != NULL) {
+  if (prompt != NULL) {
+    assert(fp != NULL);
     fclose(fp);
     fp = NULL;
   }

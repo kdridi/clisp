@@ -70,7 +70,7 @@ stream_t stream_skip(stream_t stream, const char *string) {
   return stream;
 }
 
-void stream_delete(void *ptr) {
+static void stream_destroy(void *ptr) {
   stream_t self = ptr;
   assert(self != NULL);
 
@@ -90,7 +90,7 @@ void stream_delete(void *ptr) {
 }
 
 static stream_t stream_create(stream_type_t type, ...) {
-  struct s_stream_private *self = memory_create(sizeof(*self), stream_delete);
+  struct s_stream_private *self = memory_create(sizeof(*self), stream_destroy);
   va_list ap;
 
   va_start(ap, type);
@@ -124,4 +124,10 @@ stream_t stream_create_from_file(FILE *file) {
 
 stream_t stream_create_from_string(const char *str) {
   return stream_create(kST_string, str);
+}
+
+void stream_delete(void *ptr) {
+  stream_t *stream_ptr = (stream_t *)ptr;
+  stream_t stream = *((stream_t *)stream_ptr);
+  *stream_ptr = memory_release(stream);
 }

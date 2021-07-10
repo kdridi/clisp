@@ -83,7 +83,7 @@ extern "C"
     void object_list_push(object_t *list_ptr, object_t object);
     bool object_list_is_empty(object_t object);
     // env
-    object_t object_create_env(void);
+    object_t object_create_env(int argc, const char **argv);
     // eval
     object_t object_eval(object_t env, object_t object);
 

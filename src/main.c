@@ -22,7 +22,7 @@ int main(int argc, const char *argv[]) {
     prompt = "minilisp> ";
   }
 
-  stream_new(s, stream_create_from_file(stdin), {
+  stream_new(s, stream_create_from_file(fp), {
     object_new(env, object_create_env(argc - offset, argv + offset), {
       while (true) {
         printf("%s", prompt ? prompt : "");

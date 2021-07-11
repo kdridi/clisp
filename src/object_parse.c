@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "parser.h"
+#include "object_parse.h"
 
 #define next_char(s, skip)                                                     \
   (((skip) ? (stream_skip((s), " \n\r\t")) : (s))->next(s))
@@ -66,7 +66,7 @@ object_t parse_number(stream_t s, int sign, int value) {
 object_t parse_list(stream_t s) {
   object_t head = object_list_create();
   while (peek_char(s, true) != ')')
-    object_new(object, parse(s), { //
+    object_new(object, object_parse(s), { //
       object_list_push(&head, object);
     });
   next_char(s, false);
@@ -80,14 +80,14 @@ object_t parse_quote(stream_t s) {
              object_create_symbol("quote"), //
              object_list_push(&list, object));
 
-  object_new(object,   //
-             parse(s), //
+  object_new(object,          //
+             object_parse(s), //
              object_list_push(&list, object));
 
   return (list);
 }
 
-object_t parse(stream_t s) {
+object_t object_parse(stream_t s) {
   int c = next_char(s, true);
 
   if (c == EOF)

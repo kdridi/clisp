@@ -1,4 +1,4 @@
-#include "parser.h"
+#include "object_parse.h"
 
 #include <assert.h>
 #include <string.h>
@@ -26,7 +26,7 @@ int main(int argc, const char *argv[]) {
     object_new(env, object_create_env(argc - offset, argv + offset), {
       while (true) {
         printf("%s", prompt ? prompt : "");
-        object_t object = parse(s);
+        object_t object = object_parse(s);
         if (object == NULL)
           break;
         object_t result = object_eval(env, object);

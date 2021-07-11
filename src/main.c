@@ -38,7 +38,7 @@ int main(int argc, const char *argv[]) {
     });
   });
 
-  if (prompt != NULL) {
+  if (prompt == NULL) {
     assert(fp != NULL);
     fclose(fp);
     fp = NULL;

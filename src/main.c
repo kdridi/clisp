@@ -30,6 +30,7 @@ int main(int argc, const char *argv[]) {
         printf("%s", prompt ? prompt : "");
         object_new(object, object_parse(s), {
           running = true;
+          // object_print(object);
           object_new(result, object_eval(env, object), {
 #ifdef NDEBUG
             if (prompt != NULL)

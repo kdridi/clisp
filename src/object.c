@@ -239,15 +239,25 @@ static void env_add_integer(object_t env, const char *name, int integer) {
   });
 }
 
-static object_t primitive_do(object_t env, object_t args) {
+static object_t for_each(object_t env, object_t args, bool print) {
   object_t result = NULL;
   while (object_list_is_empty(args) == false) {
     if (result != NULL)
       memory_release(result);
     result = object_eval(env, args->list.head);
+    if (print == true)
+      object_print(result);
     args = args->list.tail;
   }
   return result;
+}
+
+static object_t primitive_do(object_t env, object_t args) { //
+  return for_each(env, args, false);
+}
+
+static object_t primitive_print(object_t env, object_t args) { //
+  return for_each(env, args, true);
 }
 
 static object_t primitive_if(object_t env, object_t args) {
@@ -279,6 +289,25 @@ static object_t primitive_define(object_t env, object_t args) {
 static object_t primitive_lambda(object_t env, object_t args) { //
   assert(object_list_length(args) == 2);
   return make_function(kOT_function, args->list.head, args->list.tail, env);
+}
+
+static object_t primitive_quote(object_t env, object_t args) { //
+  assert(object_list_length(args) == 1);
+  assert(env != NULL);
+  ((void)env);
+  return memory_retain(args->list.head);
+}
+
+static object_t primitive_eval(object_t env, object_t args) { //
+  assert(object_list_length(args) == 1);
+  assert(env != NULL);
+  ((void)env);
+
+  object_t result = NULL;
+  object_new(value, object_eval(env, args->list.head), { //
+    result = object_eval(env, value);
+  });
+  return (result);
 }
 
 static object_t primitive_defun(object_t env, object_t args) {
@@ -501,6 +530,9 @@ object_t object_create_env(int argc, const char **argv) {
       env_add_primitive(env, "define", primitive_define);
       env_add_primitive(env, "defun", primitive_defun);
       env_add_primitive(env, "lambda", primitive_lambda);
+      env_add_primitive(env, "quote", primitive_quote);
+      env_add_primitive(env, "print", primitive_print);
+      env_add_primitive(env, "eval", primitive_eval);
 
       env_add_integer(env, "O_RDONLY", O_RDONLY);
       env_add_primitive(env, "c_open", c_open);
@@ -536,18 +568,64 @@ object_t object_create_env(int argc, const char **argv) {
 void object_print(object_t self) {
   assert(self != NULL);
   switch (self->type) {
+  case kOT_function:
+    printf("<function>");
+    break;
+  case kOT_primitive:
+    printf("<primitive>");
+    break;
+  case kOT_symbol:
+    printf("%s", self->symbol);
+    break;
+  case kOT_string:
+    printf("%s", self->string);
+    break;
+  case kOT_integer:
+    printf("%d", self->integer);
+    break;
+  case kOT_list:
+    printf("(");
+    for (object_t p = self; !object_list_is_empty(p); p = p->list.tail) {
+      printf("%s", p == self ? "" : " ");
+      object_print(p->list.head);
+    }
+    printf(")");
+    break;
+  case kOT_constant:
+    switch (self->constant) {
+    case kCT_nil:
+      printf("()");
+      break;
+    case kCT_true:
+      printf("true");
+      break;
+    default:
+      assert(false);
+      break;
+    }
+    break;
+  default:
+    printf("ERROR: type = %d\n", self->type);
+    assert(false);
+    break;
+  }
+}
+
+void object_dump(object_t self) {
+  assert(self != NULL);
+  switch (self->type) {
   case kOT_env:
     printf("ENV[VARS[");
     for (object_t p = self->env.vars; !object_list_is_empty(p);
          p = p->list.tail) {
       printf("(");
-      object_print(p->list.head->list.head);
+      object_dump(p->list.head->list.head);
       printf(",");
-      object_print(p->list.head->list.tail);
+      object_dump(p->list.head->list.tail);
       printf(")");
     }
     printf("]PARENT[");
-    object_print(self->env.parent);
+    object_dump(self->env.parent);
     printf("]]");
     break;
   case kOT_function:
@@ -569,7 +647,7 @@ void object_print(object_t self) {
     printf("LIST[");
     for (object_t p = self; !object_list_is_empty(p); p = p->list.tail) {
       printf("%s", p == self ? "" : " ");
-      object_print(p->list.head);
+      object_dump(p->list.head);
     }
     printf("]");
     break;
@@ -597,9 +675,9 @@ object_t object_apply(object_t env, object_t func, object_t args) {
   assert(env->type == kOT_env);
   assert(func != NULL);
   if (func->type != kOT_primitive && func->type != kOT_function) {
-    object_print(func);
+    object_dump(func);
     printf("\n");
-    // object_print(args);
+    // object_dump(args);
     // printf("\n");
     assert(false);
   }
@@ -630,7 +708,7 @@ object_t object_apply(object_t env, object_t func, object_t args) {
   }
   default:
     printf("ERROR: ");
-    object_print(func);
+    object_dump(func);
     printf("\n");
     assert(false);
     break;

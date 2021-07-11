@@ -1,8 +1,12 @@
-(define fac (n)
+'(+ 1 2 3)
+(eval '(+ 1 2 3))
+
+(print (eval '(+ 12 34 56)))
+(print '(+ 12 34 56))
+
+(defun fac (n)
     (if (= n 0)
         1
         (* n (fac (- n 1)))))
 
-'(+ 12 34 56)
-
-(print "hello, \"world\"!")
+(print "hello, \"world\"!" "\n" (fac 4) "\n")

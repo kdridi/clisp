@@ -6,14 +6,14 @@
 
 typedef enum
 {
-    kOT_constant,
-    kOT_integer,
-    kOT_list,
-    kOT_symbol,
-    kOT_string,
-    kOT_env,
-    kOT_primitive,
-    kOT_function,
+    kOT_constant = 1,
+    kOT_integer = 2,
+    kOT_list = 3,
+    kOT_symbol = 4,
+    kOT_string = 5,
+    kOT_env = 6,
+    kOT_primitive = 7,
+    kOT_function = 8,
 } object_type_t;
 
 typedef enum
@@ -88,6 +88,7 @@ extern "C"
     object_t object_eval(object_t env, object_t object);
 
     void object_print(object_t self);
+    void object_dump(object_t self);
     void object_delete(void *ptr);
 
 #ifdef __cplusplus

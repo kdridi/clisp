@@ -40,8 +40,22 @@ static object_t parse_string(stream_t s) {
 
   int ch = next_char(s, false);
   while (ch != '"') {
-    if (ch == '\\')
+    if (ch == '\\') {
       ch = next_char(s, false);
+      switch (ch) {
+      case 'n':
+        ch = '\n';
+        break;
+      case 'r':
+        ch = '\r';
+        break;
+      case 't':
+        ch = '\t';
+        break;
+      default:
+        break;
+      }
+    }
     assert(ch != EOF);
     if (length == capacity) {
       capacity += capacity;

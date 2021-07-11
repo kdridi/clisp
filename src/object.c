@@ -1,5 +1,6 @@
 #include "object.h"
 #include "memory.h"
+#include "object_parse.h"
 
 #include <assert.h>
 #include <fcntl.h>
@@ -310,6 +311,20 @@ static object_t primitive_eval(object_t env, object_t args) { //
   return (result);
 }
 
+static object_t primitive_read(object_t env, object_t args) { //
+  assert(object_list_length(args) == 1);
+  assert(env != NULL);
+  ((void)env);
+
+  object_t result = NULL;
+  object_new(value, object_eval(env, args->list.head), {      //
+    stream_new(s, stream_create_from_string(value->string), { //
+      result = object_parse(s);
+    });
+  });
+  return (result);
+}
+
 static object_t primitive_defun(object_t env, object_t args) {
   assert(object_list_length(args) == 3);
   object_t name = args->list.head;
@@ -533,6 +548,7 @@ object_t object_create_env(int argc, const char **argv) {
       env_add_primitive(env, "quote", primitive_quote);
       env_add_primitive(env, "print", primitive_print);
       env_add_primitive(env, "eval", primitive_eval);
+      env_add_primitive(env, "read", primitive_read);
 
       env_add_integer(env, "O_RDONLY", O_RDONLY);
       env_add_primitive(env, "c_open", c_open);

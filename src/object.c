@@ -19,7 +19,6 @@ static void unmake(void *ptr) {
     memory_release(object->list.head);
     break;
   case kOT_env:
-    memory_release(object->env.parent);
     memory_release(object->env.vars);
     break;
   case kOT_symbol:
@@ -86,7 +85,7 @@ static object_t make_env(object_t vars, object_t parent) {
   assert(vars != NULL);
   object_t self = make(kOT_env, sizeof(self->env));
   self->env.vars = memory_retain(vars);
-  self->env.parent = memory_retain(parent);
+  self->env.parent = parent;
   return (self);
 }
 
@@ -275,6 +274,37 @@ static object_t primitive_if(object_t env, object_t args) {
     return object_eval(env, args->list.tail->list.tail);
 
   return primitive_do(env, args->list.tail->list.tail);
+}
+
+static object_t primitive_let(object_t env, object_t args) {
+  assert(object_list_length(args) == 2);
+
+  object_t result = NULL;
+  object_new(vars, object_list_create(), {
+    object_new(new_env, make_env(vars, env), { //
+      object_t params = args->list.head;
+      args = args->list.tail;
+
+      while (object_list_is_empty(params) == false) {
+        object_t key = params->list.head;
+        assert(key->type == kOT_symbol);
+        params = params->list.tail;
+
+        assert(object_list_is_empty(params) == false);
+        object_new(value, object_eval(new_env, params->list.head), {
+          env_add(new_env, key, value);
+          params = params->list.tail;
+        });
+      }
+
+      object_t body = args->list.head;
+      args = args->list.tail;
+      assert(object_list_is_empty(args) == true);
+
+      result = object_eval(new_env, body);
+    });
+  });
+  return (result);
 }
 
 static object_t primitive_define(object_t env, object_t args) {
@@ -542,6 +572,7 @@ object_t object_create_env(int argc, const char **argv) {
 
       env_add_primitive(env, "if", primitive_if);
       env_add_primitive(env, "do", primitive_do);
+      env_add_primitive(env, "let", primitive_let);
       env_add_primitive(env, "define", primitive_define);
       env_add_primitive(env, "defun", primitive_defun);
       env_add_primitive(env, "lambda", primitive_lambda);

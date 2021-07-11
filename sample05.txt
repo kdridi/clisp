@@ -1,0 +1,4 @@
+(define a 10)
+(print a "\n")
+(print (let (a 20) (+ a a)) "\n")
+(print a "\n")

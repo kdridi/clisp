@@ -31,6 +31,7 @@ struct s_stream_private {
 
 static struct s_stream_private *as(stream_t ptr, stream_type_t type) {
   assert(private(ptr)->type == type);
+  ((void)type);
   return (private(ptr));
 }
 
@@ -45,6 +46,7 @@ static int peek_file(stream_t ptr) {
   if (ch != EOF) {
     int err = ungetc(ch, as_file(ptr));
     assert(err != EOF);
+    ((void)err);
   }
   return ch;
 }

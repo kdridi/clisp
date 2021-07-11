@@ -24,16 +24,22 @@ int main(int argc, const char *argv[]) {
 
   stream_new(s, stream_create_from_file(fp), {
     object_new(env, object_create_env(argc - offset, argv + offset), {
-      while (true) {
+      bool running = true;
+      while (running) {
+        running = false;
         printf("%s", prompt ? prompt : "");
-        object_t object = object_parse(s);
-        if (object == NULL)
-          break;
-        object_t result = object_eval(env, object);
-        object_print(result);
-        memory_release(result);
-        printf("\n");
-        memory_release(object);
+        object_new(object, object_parse(s), {
+          running = true;
+          object_new(result, object_eval(env, object), {
+#ifdef NDEBUG
+            if (prompt != NULL)
+#endif
+            {
+              object_print(result);
+              printf("\n");
+            }
+          });
+        });
       }
     });
   });

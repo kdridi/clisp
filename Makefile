@@ -1,5 +1,5 @@
 CC			=	gcc -std=gnu11 -O0 -g3 -ggdb #-fsanitize=address
-CPPFLAGS	=	
+CPPFLAGS	=	#-DNDEBUG
 CFLAGS		=	-W -Wall -Wextra -Werror
 LDFLAGS		=	
 

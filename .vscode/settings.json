@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "memory.h": "c",
-        "__locale": "c",
-        "functional": "c"
-    }
-}

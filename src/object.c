@@ -448,25 +448,25 @@ static object_t primitive_div(object_t env, object_t args) {
 
 static object_t c_open(object_t env, object_t args) {
   assert(object_list_length(args) == 2);
-
+  object_t result = NULL;
   object_new(pathname, object_eval(env, args->list.head), {
     assert(pathname->type == kOT_string);
     object_new(flags, object_eval(env, args->list.tail->list.head), {
       assert(flags->type == kOT_integer);
-      int result = open(pathname->string, flags->integer);
-      return object_create_integer(result);
+      result = object_create_integer(open(pathname->string, flags->integer));
     });
   });
+  return result;
 }
 
 static object_t c_close(object_t env, object_t args) {
   assert(object_list_length(args) == 1);
-
+  object_t result = NULL;
   object_new(fp, object_eval(env, args->list.head), {
     assert(fp->type == kOT_integer);
-    int result = close(fp->integer);
-    return object_create_integer(result);
+    result = object_create_integer(close(fp->integer));
   });
+  return result;
 }
 
 // static object_t c_read(object_t env, object_t args) {

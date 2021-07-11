@@ -94,12 +94,16 @@ extern "C"
 }
 #endif
 
-#define object_new(_name, _value, _block)                                    \
-    do                                                                       \
-    {                                                                        \
-        __attribute__((__cleanup__(object_delete))) object_t _name = _value; \
-        assert(_name != NULL);                                               \
-        _block;                                                              \
+#define object_new(_name, _value, _block)                                         \
+    do                                                                            \
+    {                                                                             \
+        object_t __value = _value;                                                \
+        if (__value != NULL)                                                      \
+        {                                                                         \
+            __attribute__((__cleanup__(object_delete))) object_t _name = __value; \
+            assert(_name != NULL);                                                \
+            _block;                                                               \
+        }                                                                         \
     } while (0)
 
 #endif /* __OBJECT_H__ */
